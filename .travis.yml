@@ -6,6 +6,11 @@ compiler: gcc
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y build-essential mercurial cmake libzip-dev libxaw7-dev libfreeimage-dev libfreetype6-dev git libtinyxml-dev libzzip-dev libois-dev
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+env:
+  global:
+    - secure: "iAxZnh0vKqV8VHOgEPDqpKAD32r2L3hkMYkbEFNrBbtATBWBxnvoD66iob6GOAHcRQtXXhWZqhMVFQShIMG83PmAKB6h/1ztKnYqntAz5vvaWACNU5j+RCrku8JXU/+02wXfNuIqJBodXsg2Z2w9tRdfboTiao4oZRvzos9Lv/0d2QB3yViFvCIPErGu0mnjNe7wdCv9JluyhLFR6smpX1m75KYp37Lqk8/Y1klLLBSt2tptusuViyAis4tPQO2w8sP2UCFuUPR9MKWq9y9fKpCNnhZ6CBxe66BVumIwgNWse68ZqeStIV6QXw5tM3g4BGAIqse2RDz5AY4v4pvTepCBTGXxSDYzA2e8mp1llPYcOwBOWXXZyFIdfIT50CVCgtGTX/LTSmO0j0kVmiqsW7mE1RV+3qhkJdSIvWdL4splPcGnlR2WZTxdluKyZ2olD64HIvV1TWI9T/L1rr713ZpIh6+5a4g+FyT40gdc6EwcQpn2kQJi7HF3uTC7DFtNDoQc0wFOdqmc4VSvDRF0Kbe55Vzt8wmt7zAZvDFGAFpDmnm5fBR8K49yt6/92RAtFkdCBzMMkz3WWTFLPfd63Xnc+mSJPM4qS7kgpCpM1l/dXN9eKKg0a6GqRS+5HuoRXmTJsO6Tw/OrLAOfEpC625Z981S/01ApnK4+Gy1JVpc="
 
 addons:
   apt:
@@ -15,6 +20,32 @@ addons:
       - gcc-7
       - g++-7
       - cmake
+    coverity_scan:
+    project:
+      name: "Ybalrid/Ogre_glTF"
+      description: "gltf 2.0 loader for Ogre 2.1"
+    notification_email: ybalrid@ybalrid.info
+    build_command_prepend:
+      - goback=$(pwd)
+      - cd /tmp
+      - mkdir prefix
+      - cd prefix
+      - wget http://ybalrid.info/files/ogre21.tar.xz
+      - tar xvJf ogre21.tar.xz
+      - rm ogre21.tar.xz
+      - sudo cp -r * /
+      - sudo ldconfig -v
+      - cd $goback
+    build_command:
+      - sudo ln -s /usr/bin/gcc-7 /usr/local/bin/gcc
+      - sudo ln -s /usr/bin/g++-7 /usr/local/bin/g++
+      - export CC=/usr/bin/gcc-7
+      - export CXX=/usr/bin/g++-7
+      - gcc -v && g++ -v && cmake --version
+      - cd build
+      - cmake ..
+      - make
+    branch_pattern: coverity
 
 before_script:
   - goback=$(pwd)
