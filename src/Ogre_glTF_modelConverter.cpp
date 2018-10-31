@@ -198,23 +198,48 @@ void modelConverter::debugDump() const
 	OgreLog(gltfContentDump);
 }
 
-bool modelConverter::hasSkins() const { return model.skins.size() > 0; }
+bool modelConverter::hasSkins() const { return !model.skins.empty(); }
 
-void modelConverter::getTransforms(Ogre_glTF::ItemAndTransforms* trans)
+ItemAndTransform modelConverter::getTransform()
 {
-	if (model.nodes.size() > 0) { 
+	ItemAndTransform trans;
 		std::array<float, 3> translation{ 0 }, scale{ 0 };
 		std::array<float, 4> rotation{ 0 };
+		std::array<float, 4*4> local_matrix{ 0 };
+		bool set = false;
 
 		// Just get the first one - not sure if there can be more for a model but doubt it
-		const auto& nodes = model.nodes[model.scenes[model.defaultScene].nodes.front()];
-		if (nodes.translation.size() == 3) internal_utils::container_double_to_float(nodes.translation, translation);
-		if (nodes.scale.size() == 3) internal_utils::container_double_to_float(nodes.scale, scale);
-		if (nodes.rotation.size() == 3) internal_utils::container_double_to_float(nodes.rotation, rotation);
-		trans->pos  = Ogre::Vector3{ translation.data() };
-		trans->rot = Ogre::Quaternion{ rotation[3], rotation[0], rotation[1], rotation[2] };
-		trans->scale = Ogre::Vector3{ scale.data() };
+		const auto& nodes = (model.defaultScene != 0 ? model.nodes[model.scenes[model.defaultScene].nodes[0]] : model.nodes[0]);
+		if (!nodes.translation.empty())
+		{
+			internal_utils::container_double_to_float(nodes.translation, translation);
+			trans.pos	 = Ogre::Vector3{ translation.data() };
+			set = true;
+		}
+		if (!nodes.scale.empty())
+		{
+			internal_utils::container_double_to_float(nodes.scale, scale);
+			trans.scale = Ogre::Vector3{ scale.data() };
+			set = true;
+		}
+		if (!nodes.rotation.empty())
+		{
+			internal_utils::container_double_to_float(nodes.rotation, rotation);
+			trans.rot	 = Ogre::Quaternion{ rotation[3], rotation[0], rotation[1], rotation[2] };
+			set = true;
+		}
+
+	if(!set && !nodes.matrix.empty())
+	{
+		internal_utils::container_double_to_float(nodes.matrix, local_matrix);
+		Ogre::Matrix4 transform_matrix{ local_matrix.data() };
+
+		transform_matrix.transpose().decomposition(trans.pos, trans.scale, trans.rot);
 	}
+
+
+
+	return trans;
 }
 
 Ogre::VaoManager* modelConverter::getVaoManager()
